@@ -1,7 +1,8 @@
 'use client'
 import { useEffect, useState } from 'react'
 import AppShell from '@/components/AppShell'
-import { Settings, Receipt, Bell, Store, Save } from 'lucide-react'
+import { Settings, Receipt, Bell, Store, Save, User, KeyRound } from 'lucide-react'
+import { createClient } from '@/lib/supabase/client'
 
 interface StoreSettings {
   storeName: string
@@ -20,16 +21,50 @@ const DEFAULT_SETTINGS: StoreSettings = {
 export default function SettingsPage() {
   const [settings, setSettings] = useState<StoreSettings>(DEFAULT_SETTINGS)
   const [saved, setSaved] = useState(false)
+  const [fullName, setFullName] = useState('')
+  const [newPassword, setNewPassword] = useState('')
+  const [profileSaved, setProfileSaved] = useState('')
+  const [profileLoading, setProfileLoading] = useState(false)
+  const [isAdmin, setIsAdmin] = useState(false)
+  const supabase = createClient()
 
   useEffect(() => {
     const stored = localStorage.getItem('store_settings')
     if (stored) setSettings(JSON.parse(stored))
+
+    // Load current user's name
+    async function loadProfile() {
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase.from('profiles').select('full_name, role').eq('id', user.id).single()
+      if (data) { setFullName(data.full_name); setIsAdmin(data.role === 'admin') }
+    }
+    loadProfile()
   }, [])
 
   function save() {
     localStorage.setItem('store_settings', JSON.stringify(settings))
     setSaved(true)
     setTimeout(() => setSaved(false), 2000)
+  }
+
+  async function saveProfile(e: React.FormEvent) {
+    e.preventDefault()
+    setProfileLoading(true)
+    setProfileSaved('')
+    const { data: { user } } = await supabase.auth.getUser()
+    if (!user) return
+
+    await supabase.from('profiles').update({ full_name: fullName.trim() }).eq('id', user.id)
+
+    if (newPassword.length >= 6) {
+      await supabase.auth.updateUser({ password: newPassword })
+      setNewPassword('')
+    }
+
+    setProfileSaved('Profile updated!')
+    setProfileLoading(false)
+    setTimeout(() => setProfileSaved(''), 3000)
   }
 
   return (
@@ -40,7 +75,49 @@ export default function SettingsPage() {
           <p className="text-slate-500 text-sm">Admin configuration for the store</p>
         </div>
 
-        {/* Store Info */}
+        {/* My Profile */}
+        <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
+          <div className="flex items-center gap-2 mb-2">
+            <User className="w-5 h-5 text-green-600" />
+            <h2 className="font-semibold text-slate-700">My Profile</h2>
+          </div>
+          <form onSubmit={saveProfile} className="space-y-4">
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1">Display Name</label>
+              <input
+                value={fullName}
+                onChange={e => setFullName(e.target.value)}
+                placeholder="Enter your full name"
+                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+              <p className="text-xs text-slate-400 mt-1">This is the name shown in the sidebar and on receipts</p>
+            </div>
+            <div>
+              <label className="block text-sm font-medium text-slate-700 mb-1 flex items-center gap-1">
+                <KeyRound className="w-3 h-3" /> Change Password
+              </label>
+              <input
+                type="password"
+                value={newPassword}
+                onChange={e => setNewPassword(e.target.value)}
+                placeholder="Leave empty to keep current password"
+                minLength={6}
+                className="w-full border border-slate-300 rounded-xl px-4 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+              />
+            </div>
+            {profileSaved && (
+              <p className="text-sm text-green-600 font-medium">{profileSaved}</p>
+            )}
+            <button type="submit" disabled={profileLoading || !fullName.trim()}
+              className="flex items-center gap-2 bg-green-600 hover:bg-green-700 disabled:opacity-50 text-white px-5 py-2.5 rounded-xl text-sm font-semibold">
+              <Save className="w-4 h-4" />
+              {profileLoading ? 'Saving…' : 'Save Profile'}
+            </button>
+          </form>
+        </div>
+
+        {/* Store Info — admin only */}
+        {isAdmin && <>
         <div className="bg-white rounded-2xl border border-slate-200 p-6 space-y-4">
           <div className="flex items-center gap-2 mb-2">
             <Store className="w-5 h-5 text-green-600" />
@@ -110,6 +187,7 @@ export default function SettingsPage() {
           <Save className="w-4 h-4" />
           {saved ? 'Settings Saved!' : 'Save Settings'}
         </button>
+        </>}
       </div>
     </AppShell>
   )

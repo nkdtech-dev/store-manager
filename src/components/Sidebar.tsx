@@ -13,6 +13,7 @@ const cashierNav = [
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/sales', label: 'Sales', icon: ShoppingCart },
   { href: '/stock', label: 'Stock', icon: AlertTriangle },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 // Extra nav items only for admins
@@ -21,7 +22,6 @@ const adminNav = [
   { href: '/expenses', label: 'Expenses', icon: Wallet },
   { href: '/activity', label: 'Activity Log', icon: Activity },
   { href: '/staff', label: 'Staff', icon: Users },
-  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function Sidebar() {
