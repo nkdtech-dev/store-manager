@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
-import { Plus, Search, Edit, Trash2, Package, Upload, X } from 'lucide-react'
+import { Plus, Search, Edit, Trash2, Package, Upload, X, Tag } from 'lucide-react'
 import type { Product, Category } from '@/types'
 import Image from 'next/image'
 
@@ -27,6 +27,9 @@ export default function InventoryPage() {
   const [saving, setSaving] = useState(false)
   const [selected, setSelected] = useState<Product | null>(null)
   const [similarProducts, setSimilarProducts] = useState<Product[]>([])
+  const [showCatForm, setShowCatForm] = useState(false)
+  const [newCatName, setNewCatName] = useState('')
+  const [savingCat, setSavingCat] = useState(false)
   const supabase = createClient()
 
   useEffect(() => { load() }, [])
@@ -39,6 +42,23 @@ export default function InventoryPage() {
     const { data: cats } = await supabase.from('categories').select('*').order('name')
     if (prods) setProducts(prods)
     if (cats) setCategories(cats)
+  }
+
+  async function addCategory() {
+    if (!newCatName.trim()) return
+    setSavingCat(true)
+    const { data } = await supabase
+      .from('categories')
+      .insert({ name: newCatName.trim() })
+      .select()
+      .single()
+    if (data) {
+      setCategories(prev => [...prev, data])
+      setForm(f => ({ ...f, category_id: data.id }))
+      setNewCatName('')
+      setShowCatForm(false)
+    }
+    setSavingCat(false)
   }
 
   const filtered = products.filter(p => {
@@ -271,7 +291,33 @@ export default function InventoryPage() {
               </div>
 
               <div>
-                <label className="block text-sm font-medium text-slate-700 mb-1">Category</label>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-sm font-medium text-slate-700">Category</label>
+                  <button type="button" onClick={() => setShowCatForm(v => !v)}
+                    className="flex items-center gap-1 text-xs text-green-600 hover:text-green-700 font-medium">
+                    <Tag className="w-3 h-3" /> + New Category
+                  </button>
+                </div>
+                {showCatForm && (
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      autoFocus
+                      value={newCatName}
+                      onChange={e => setNewCatName(e.target.value)}
+                      onKeyDown={e => e.key === 'Enter' && (e.preventDefault(), addCategory())}
+                      placeholder="Category name"
+                      className="flex-1 border border-green-400 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
+                    />
+                    <button type="button" onClick={addCategory} disabled={savingCat}
+                      className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded-xl text-sm font-medium disabled:opacity-60">
+                      {savingCat ? '…' : 'Add'}
+                    </button>
+                    <button type="button" onClick={() => { setShowCatForm(false); setNewCatName('') }}
+                      className="p-2 hover:bg-slate-100 rounded-xl text-slate-400">
+                      <X className="w-4 h-4" />
+                    </button>
+                  </div>
+                )}
                 <select value={form.category_id} onChange={e => setForm(f => ({ ...f, category_id: e.target.value }))}
                   className="w-full border border-slate-300 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
                   <option value="">Select category</option>
