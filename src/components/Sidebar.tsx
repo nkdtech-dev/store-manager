@@ -1,9 +1,11 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
+import { useEffect, useState } from 'react'
+import type { Profile } from '@/types'
 
 const nav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
@@ -16,6 +18,22 @@ const nav = [
 export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
+  const [profile, setProfile] = useState<Profile | null>(null)
+
+  useEffect(() => {
+    async function loadProfile() {
+      const supabase = createClient()
+      const { data: { user } } = await supabase.auth.getUser()
+      if (!user) return
+      const { data } = await supabase
+        .from('profiles')
+        .select('*')
+        .eq('id', user.id)
+        .single()
+      if (data) setProfile(data)
+    }
+    loadProfile()
+  }, [])
 
   async function handleLogout() {
     const supabase = createClient()
@@ -31,11 +49,31 @@ export default function Sidebar() {
             <Store className="text-green-700 w-6 h-6" />
           </div>
           <div>
-            <p className="font-bold text-lg leading-tight">StoreManager</p>
+            <p className="font-bold text-lg leading-tight">NDA Store</p>
             <p className="text-green-300 text-xs">Inventory & Sales</p>
           </div>
         </div>
       </div>
+
+      {/* Logged in user info */}
+      {profile && (
+        <div className="px-4 py-3 border-b border-green-700 bg-green-900/30">
+          <p className="text-white text-sm font-semibold truncate">{profile.full_name}</p>
+          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+            profile.role === 'admin' ? 'bg-blue-500/30 text-blue-200' : 'bg-green-500/30 text-green-200'
+          }`}>
+            {profile.role}
+          </span>
+          {profile.last_login_at && (
+            <div className="flex items-center gap-1 mt-1.5">
+              <Clock className="w-3 h-3 text-green-400" />
+              <p className="text-green-400 text-xs">
+                Last login: {new Date(profile.last_login_at).toLocaleString()}
+              </p>
+            </div>
+          )}
+        </div>
+      )}
 
       <nav className="flex-1 p-4 space-y-1">
         {nav.map(({ href, label, icon: Icon }) => {

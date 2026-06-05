@@ -20,7 +20,7 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({
+    const { data, error } = await supabase.auth.signInWithPassword({
       email: toEmail(username),
       password,
     })
@@ -28,6 +28,13 @@ export default function LoginPage() {
       setError('Invalid username or password')
       setLoading(false)
     } else {
+      // Record last login time
+      if (data.user) {
+        await supabase
+          .from('profiles')
+          .update({ last_login_at: new Date().toISOString() })
+          .eq('id', data.user.id)
+      }
       router.push('/dashboard')
     }
   }

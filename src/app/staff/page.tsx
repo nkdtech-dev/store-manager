@@ -259,6 +259,11 @@ function StaffCard({ member, onEdit, onDelete }: {
         }`}>
           {member.role}
         </span>
+        <p className="text-xs text-slate-400 mt-1">
+          {member.last_login_at
+            ? `Last login: ${new Date(member.last_login_at).toLocaleString()}`
+            : 'Never logged in'}
+        </p>
       </div>
       <div className="flex flex-col gap-1">
         <button onClick={() => onEdit(member)}
