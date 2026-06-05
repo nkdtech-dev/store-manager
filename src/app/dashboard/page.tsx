@@ -5,6 +5,7 @@ import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
 import { Package, ShoppingCart, TrendingUp, AlertTriangle, Search, Bell } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
 import type { Product, DashboardStats } from '@/types'
 import Image from 'next/image'
 
@@ -16,6 +17,7 @@ export default function DashboardPage() {
   const [selected, setSelected] = useState<Product | null>(null)
   const [similarProducts, setSimilarProducts] = useState<Product[]>([])
   const supabase = createClient()
+  const router = useRouter()
 
   useEffect(() => {
     loadDashboard()
@@ -176,6 +178,9 @@ export default function DashboardPage() {
           product={selected}
           similarProducts={similarProducts}
           onClose={() => setSelected(null)}
+          onAddToSale={(product) => {
+            router.push(`/sales?add=${product.code}`)
+          }}
         />
       )}
     </AppShell>

@@ -7,6 +7,7 @@ import { Search, Plus, Minus, Trash2, Tag } from 'lucide-react'
 import { logActivity } from '@/lib/activityLog'
 import type { Product, Sale } from '@/types'
 import Link from 'next/link'
+import { useSearchParams } from 'next/navigation'
 
 interface CartItem { product: Product; quantity: number; discount: number }
 
@@ -24,8 +25,17 @@ export default function SalesPage() {
   const [receipt, setReceipt] = useState<React.ComponentProps<typeof Receipt> | null>(null)
   const [cashierName, setCashierName] = useState('')
   const supabase = createClient()
+  const searchParams = useSearchParams()
 
   useEffect(() => { loadData() }, [])
+
+  // Auto-add product from dashboard popup
+  useEffect(() => {
+    const code = searchParams.get('add')
+    if (!code || products.length === 0) return
+    const product = products.find(p => p.code.toLowerCase() === code.toLowerCase())
+    if (product) addToCart(product)
+  }, [products, searchParams])
 
   useEffect(() => {
     if (!search.trim()) { setSearchResults([]); setShowResults(false); return }
