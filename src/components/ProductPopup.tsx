@@ -130,19 +130,21 @@ export default function ProductPopup({ product, similarProducts = [], onClose, o
             </div>
           </div>
         )}
-      {/* Make a Sale — full width sticky footer */}
-      {onAddToSale && (
-        <div className="px-6 pb-6">
-          <button
-            onClick={() => { onAddToSale(product); onClose() }}
-            disabled={product.stock_quantity === 0}
-            className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-colors text-base flex items-center justify-center gap-2 shadow-lg shadow-green-200"
-          >
-            <ShoppingCart className="w-5 h-5" />
-            {product.stock_quantity === 0 ? 'Out of Stock — Cannot Sell' : 'Make a Sale'}
-          </button>
-        </div>
-      )}
+
+        {/* Make a Sale — full width sticky footer */}
+        {onAddToSale && (
+          <div className="px-6 pb-6">
+            <button
+              onClick={() => { onAddToSale(product); onClose() }}
+              disabled={product.stock_quantity === 0}
+              className="w-full bg-green-600 hover:bg-green-700 active:bg-green-800 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-bold py-4 rounded-2xl transition-colors text-base flex items-center justify-center gap-2 shadow-lg shadow-green-200"
+            >
+              <ShoppingCart className="w-5 h-5" />
+              {product.stock_quantity === 0 ? 'Out of Stock — Cannot Sell' : 'Make a Sale'}
+            </button>
+          </div>
+        )}
+      </div>
     </div>
   )
 }
