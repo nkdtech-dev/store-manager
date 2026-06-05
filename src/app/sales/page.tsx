@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
 import { Search, Plus, Minus, Trash2, Receipt, ChevronDown } from 'lucide-react'
+import Link from 'next/link'
 import type { Product, Sale } from '@/types'
 
 interface CartItem { product: Product; quantity: number }
@@ -119,8 +120,16 @@ export default function SalesPage() {
     <AppShell>
       <div className="p-6 h-full">
         <div className="mb-6">
-          <h1 className="text-2xl font-bold text-slate-800">Record Sale</h1>
-          <p className="text-slate-500 text-sm">Search products by code or name to add to cart</p>
+          <h1 className="text-2xl font-bold text-slate-800">Sales</h1>
+          <div className="flex gap-2 mt-3">
+            <span className="px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white">
+              Record Sale
+            </span>
+            <Link href="/sales/history"
+              className="px-4 py-2 rounded-xl text-sm font-medium border border-slate-200 text-slate-600 hover:border-green-400 transition-colors">
+              Sales History
+            </Link>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
