@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import { Plus, Trash2, X, DollarSign, Download } from 'lucide-react'
 import { logActivity } from '@/lib/activityLog'
+import { localDb } from '@/lib/localDb'
 import type { Expense } from '@/types'
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Supplies', 'Transport', 'Maintenance', 'Marketing', 'General']
@@ -21,10 +22,20 @@ export default function ExpensesPage() {
   async function load() {
     const from = new Date(monthFilter + '-01').toISOString()
     const to = new Date(new Date(monthFilter + '-01').setMonth(new Date(monthFilter + '-01').getMonth() + 1)).toISOString()
-    const { data } = await supabase.from('expenses').select('*')
-      .gte('created_at', from).lt('created_at', to)
-      .order('created_at', { ascending: false })
-    if (data) setExpenses(data)
+
+    // Load from local DB first
+    const localExpenses = await localDb.expenses
+      .where('created_at').between(from, to, true, false)
+      .reverse().toArray()
+    if (localExpenses.length > 0) setExpenses(localExpenses as any)
+
+    // Sync from Supabase if online
+    if (navigator.onLine) {
+      const { data } = await supabase.from('expenses').select('*')
+        .gte('created_at', from).lt('created_at', to)
+        .order('created_at', { ascending: false })
+      if (data) setExpenses(data)
+    }
   }
 
   async function addExpense(e: React.FormEvent) {

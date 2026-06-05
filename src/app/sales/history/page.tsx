@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { localDb } from '@/lib/localDb'
 import AppShell from '@/components/AppShell'
 import { Search, Calendar, ChevronDown, Receipt, Package, TrendingUp } from 'lucide-react'
 import Link from 'next/link'
@@ -70,18 +71,46 @@ export default function SalesHistoryPage() {
       to = range.to
     }
 
-    const { data } = await supabase
-      .from('sales')
-      .select(`
-        id, receipt_number, total_amount, payment_method, created_at,
-        cashier:profiles(full_name),
-        items:sale_items(quantity, unit_price, subtotal, product:products(name, code))
-      `)
-      .gte('created_at', from)
-      .lte('created_at', to)
-      .order('created_at', { ascending: false })
+    // Load from local DB first (works offline)
+    const localSales = await localDb.sales
+      .where('created_at').between(from, to, true, true)
+      .reverse()
+      .toArray()
 
-    setSales((data as unknown as SaleRow[]) ?? [])
+    if (localSales.length > 0) {
+      const salesWithItems = await Promise.all(localSales.map(async s => {
+        const items = await localDb.sale_items.where('sale_id').equals(s.id).toArray()
+        return {
+          id: s.id,
+          receipt_number: s.receipt_number,
+          total_amount: s.total_amount,
+          payment_method: s.payment_method,
+          created_at: s.created_at,
+          cashier: s.cashier_name ? { full_name: s.cashier_name } : null,
+          items: items.map(i => ({
+            quantity: i.quantity,
+            unit_price: i.unit_price,
+            subtotal: i.subtotal,
+            product: { name: i.product_name ?? '—', code: i.product_code ?? '—' }
+          }))
+        }
+      }))
+      setSales(salesWithItems as unknown as SaleRow[])
+    }
+
+    // Also sync from Supabase if online
+    if (navigator.onLine) {
+      const { data } = await supabase
+        .from('sales')
+        .select(`id, receipt_number, total_amount, payment_method, created_at,
+          cashier:profiles(full_name),
+          items:sale_items(quantity, unit_price, subtotal, product:products(name, code))`)
+        .gte('created_at', from)
+        .lte('created_at', to)
+        .order('created_at', { ascending: false })
+      if (data) setSales(data as unknown as SaleRow[])
+    }
+
     setLoading(false)
   }
 

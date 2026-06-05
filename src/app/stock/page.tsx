@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import { AlertTriangle, Plus, X, Package, ArrowUp, ArrowDown, History } from 'lucide-react'
 import { logActivity } from '@/lib/activityLog'
+import { localDb } from '@/lib/localDb'
 import type { Product } from '@/types'
 import Image from 'next/image'
 
@@ -21,27 +22,48 @@ export default function StockPage() {
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, category:categories(id,name,description,created_at)')
-      .order('stock_quantity')
-    if (prods) setProducts(prods)
+    // Load from local DB first (works offline)
+    const localProds = await localDb.products.orderBy('stock_quantity').toArray()
+    if (localProds.length > 0) {
+      setProducts(localProds.map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[])
+    }
 
-    const { data: moves } = await supabase
-      .from('stock_movements')
-      .select('*, product:products(name,code), created_by_profile:profiles(full_name)')
-      .order('created_at', { ascending: false })
-      .limit(50)
-    if (moves) {
-      setMovements(moves)
-      // Mark products restocked in last 24 hours
+    const localMoves = await localDb.stock_movements.orderBy('created_at').reverse().limit(50).toArray()
+    if (localMoves.length > 0) {
+      setMovements(localMoves.map(m => ({
+        ...m,
+        product: { name: m.product_name, code: m.product_code },
+        created_by_profile: { full_name: m.created_by_name },
+      })))
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
-      const restockedIds = new Set(
-        moves
-          .filter(m => m.type === 'received' && m.created_at > oneDayAgo)
-          .map(m => m.product_id as string)
-      )
-      setRecentlyRestocked(restockedIds)
+      setRecentlyRestocked(new Set(
+        localMoves.filter(m => m.type === 'received' && m.created_at > oneDayAgo).map(m => m.product_id)
+      ))
+    }
+
+    // Sync from Supabase if online
+    if (navigator.onLine) {
+      const { data: prods } = await supabase
+        .from('products')
+        .select('*, category:categories(id,name,description,created_at)')
+        .order('stock_quantity')
+      if (prods) setProducts(prods)
+
+      const { data: moves } = await supabase
+        .from('stock_movements')
+        .select('*, product:products(name,code), created_by_profile:profiles(full_name)')
+        .order('created_at', { ascending: false })
+        .limit(50)
+      if (moves) {
+        setMovements(moves)
+        const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+        setRecentlyRestocked(new Set(
+          moves.filter(m => m.type === 'received' && m.created_at > oneDayAgo).map(m => m.product_id as string)
+        ))
+      }
     }
   }
 

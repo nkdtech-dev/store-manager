@@ -70,18 +70,37 @@ function SalesPageInner() {
       if (prods) setProducts(prods)
     }
 
+    // Cashier name from local DB
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {
-      const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
-      if (profile) setCashierName(profile.full_name)
+      const localProfile = await localDb.profiles.get(user.id)
+      if (localProfile) setCashierName(localProfile.full_name)
+      else {
+        const { data: profile } = await supabase.from('profiles').select('full_name').eq('id', user.id).single()
+        if (profile) setCashierName(profile.full_name)
+      }
     }
 
-    const { data: sales } = await supabase
-      .from('sales')
-      .select('*, cashier:profiles(id,email,full_name,role,created_at)')
-      .order('created_at', { ascending: false })
-      .limit(8)
-    if (sales) setRecentSales(sales)
+    // Recent sales from local DB (works offline)
+    const localSales = await localDb.sales.orderBy('created_at').reverse().limit(8).toArray()
+    if (localSales.length > 0) {
+      setRecentSales(localSales.map(s => ({
+        id: s.id,
+        receipt_number: s.receipt_number,
+        cashier_id: s.cashier_id ?? '',
+        total_amount: s.total_amount,
+        payment_method: s.payment_method as 'cash' | 'momo',
+        notes: s.notes,
+        created_at: s.created_at,
+      })) as any)
+    } else if (navigator.onLine) {
+      const { data: sales } = await supabase
+        .from('sales')
+        .select('*, cashier:profiles(id,email,full_name,role,created_at)')
+        .order('created_at', { ascending: false })
+        .limit(8)
+      if (sales) setRecentSales(sales)
+    }
   }
 
   function addToCart(product: Product) {
@@ -169,6 +188,26 @@ function SalesPageInner() {
             created_at: new Date().toISOString(),
           })
         }
+      }
+
+      // Always save sale to local DB immediately
+      await localDb.sales.put({
+        id: saleId,
+        receipt_number: receiptNumber,
+        cashier_id: user?.id ?? null,
+        cashier_name: cashierName,
+        total_amount: total,
+        discount: cartDiscountNum,
+        payment_method: paymentMethod,
+        notes: notes || null,
+        created_at: saleData.created_at,
+      })
+      for (const item of saleItems) {
+        await localDb.sale_items.put({
+          ...item,
+          product_name: item.product_id ? cart.find(c => c.product.id === item.product_id)?.product.name ?? null : null,
+          product_code: item.product_id ? cart.find(c => c.product.id === item.product_id)?.product.code ?? null : null,
+        })
       }
 
       // Always update local DB stock immediately

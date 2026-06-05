@@ -59,22 +59,18 @@ export default function DashboardPage() {
       setFiltered(mapped)
     }
 
-    // Stats — use local DB for product stats (works offline)
+    // All stats from local DB — works fully offline
     const allLocalProds = await localDb.products.toArray()
     const totalProducts = allLocalProds.length
     const lowStockCount = allLocalProds.filter(p => p.stock_quantity <= p.min_stock_level).length
     const totalStockValue = allLocalProds.reduce((s, p) => s + p.stock_quantity * p.cost_price, 0)
 
-    // Sales stats — try Supabase if online, else show 0
-    let revenueToday = 0, totalSalesToday = 0, totalRevenue = 0
-    if (navigator.onLine) {
-      const today = new Date().toISOString().split('T')[0]
-      const { data: todaySales } = await supabase.from('sales').select('total_amount').gte('created_at', today)
-      const { data: allSales } = await supabase.from('sales').select('total_amount')
-      revenueToday = todaySales?.reduce((s, sale) => s + Number(sale.total_amount), 0) ?? 0
-      totalSalesToday = todaySales?.length ?? 0
-      totalRevenue = allSales?.reduce((s, sale) => s + Number(sale.total_amount), 0) ?? 0
-    }
+    const today = new Date().toISOString().split('T')[0]
+    const allLocalSales = await localDb.sales.toArray()
+    const todaySales = allLocalSales.filter(s => s.created_at.startsWith(today))
+    const revenueToday = todaySales.reduce((s, sale) => s + sale.total_amount, 0)
+    const totalSalesToday = todaySales.length
+    const totalRevenue = allLocalSales.reduce((s, sale) => s + sale.total_amount, 0)
 
     setStats({ totalProducts, totalSalesToday, revenueToday, lowStockCount, totalRevenue, totalStockValue })
   }
