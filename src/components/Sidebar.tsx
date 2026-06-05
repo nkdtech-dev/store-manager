@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Wallet, Settings, Activity } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Wallet, Settings, Activity, X } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -24,7 +24,7 @@ const adminNav = [
   { href: '/staff', label: 'Staff', icon: Users },
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ onClose }: { onClose?: () => void }) {
   const pathname = usePathname()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -60,8 +60,8 @@ export default function Sidebar() {
   }
 
   return (
-    <aside className="w-64 bg-green-800 text-white flex flex-col min-h-screen">
-      <div className="p-6 border-b border-green-700">
+    <aside className="w-64 bg-green-800 text-white flex flex-col min-h-screen h-full overflow-y-auto">
+      <div className="p-4 border-b border-green-700 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <div className="bg-white rounded-lg p-2">
             <Store className="text-green-700 w-6 h-6" />
@@ -71,6 +71,11 @@ export default function Sidebar() {
             <p className="text-green-300 text-xs">Inventory & Sales</p>
           </div>
         </div>
+        {onClose && (
+          <button onClick={onClose} className="p-2 hover:bg-green-700 rounded-lg md:hidden">
+            <X className="w-5 h-5 text-green-300" />
+          </button>
+        )}
       </div>
 
       {/* Logged in user info */}
@@ -108,7 +113,7 @@ export default function Sidebar() {
           const active = pathname.startsWith(href)
           const isStock = href === '/stock'
           return (
-            <Link key={href} href={href}
+            <Link key={href} href={href} onClick={onClose}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
                 active ? 'bg-green-600 text-white' : 'text-green-200 hover:bg-green-700 hover:text-white'
               }`}>

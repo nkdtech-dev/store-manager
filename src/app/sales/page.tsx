@@ -176,8 +176,8 @@ export default function SalesPage() {
 
   return (
     <AppShell>
-      <div className="p-6 h-full">
-        <div className="mb-6">
+      <div className="p-4 md:p-6 h-full">
+        <div className="mb-4">
           <h1 className="text-2xl font-bold text-slate-800">Sales</h1>
           <div className="flex gap-2 mt-3">
             <span className="px-4 py-2 rounded-xl text-sm font-medium bg-green-600 text-white">Record Sale</span>
@@ -188,7 +188,7 @@ export default function SalesPage() {
           </div>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
           <div className="lg:col-span-2 space-y-4">
             {/* Search */}
             <div className="relative">

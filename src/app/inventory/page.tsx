@@ -166,38 +166,68 @@ export default function InventoryPage() {
 
   return (
     <AppShell>
-      <div className="p-6 space-y-6">
+      <div className="p-4 md:p-6 space-y-4">
         <div className="flex items-center justify-between">
           <div>
-            <h1 className="text-2xl font-bold text-slate-800">Inventory</h1>
-            <p className="text-slate-500 text-sm">{products.length} products total</p>
+            <h1 className="text-xl md:text-2xl font-bold text-slate-800">Inventory</h1>
+            <p className="text-slate-500 text-xs md:text-sm">{products.length} products total</p>
           </div>
-          <button onClick={openNew} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded-xl text-sm font-semibold transition-colors">
-            <Plus className="w-4 h-4" /> Add Product
+          <button onClick={openNew} className="flex items-center gap-2 bg-green-600 hover:bg-green-700 text-white px-3 py-2 md:px-4 rounded-xl text-sm font-semibold transition-colors">
+            <Plus className="w-4 h-4" /> <span className="hidden sm:inline">Add Product</span><span className="sm:hidden">Add</span>
           </button>
         </div>
 
         {/* Filters */}
-        <div className="flex gap-3 flex-wrap">
-          <div className="relative flex-1 min-w-48">
+        <div className="flex gap-2 flex-wrap">
+          <div className="relative flex-1 min-w-0">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
-            <input
-              type="text" value={search} onChange={e => setSearch(e.target.value)}
+            <input type="text" value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search products…"
-              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-            />
+              className="w-full pl-9 pr-4 py-2 border border-slate-200 rounded-xl text-sm focus:outline-none focus:ring-2 focus:ring-green-500" />
           </div>
-          <select
-            value={filterCat} onChange={e => setFilterCat(e.target.value)}
-            className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500"
-          >
-            <option value="">All Categories</option>
+          <select value={filterCat} onChange={e => setFilterCat(e.target.value)}
+            className="border border-slate-200 rounded-xl px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-green-500">
+            <option value="">All</option>
             {categories.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
           </select>
         </div>
 
-        {/* Table */}
-        <div className="bg-white rounded-2xl border border-slate-200 overflow-hidden">
+        {/* Mobile cards / Desktop table */}
+        <div className="md:hidden space-y-2">
+          {filtered.map(p => {
+            const isLow = p.stock_quantity <= p.min_stock_level
+            return (
+              <div key={p.id} className="bg-white rounded-2xl border border-slate-200 p-4 flex items-center gap-3">
+                <button onClick={() => openProduct(p)} className="flex items-center gap-3 flex-1 min-w-0 text-left">
+                  <div className="w-12 h-12 bg-slate-100 rounded-xl overflow-hidden flex-shrink-0 flex items-center justify-center">
+                    {p.image_url ? <Image src={p.image_url} alt={p.name} width={48} height={48} className="object-cover w-full h-full" />
+                      : <Package className="w-6 h-6 text-slate-300" />}
+                  </div>
+                  <div className="min-w-0">
+                    <p className="font-semibold text-slate-800 truncate">{p.name}</p>
+                    <p className="text-xs font-mono text-blue-600">{p.code}</p>
+                    <div className="flex items-center gap-2 mt-0.5">
+                      <span className="text-sm font-bold text-green-600">{p.selling_price.toLocaleString('en')} FCFA</span>
+                      <span className={`text-xs font-medium ${isLow ? 'text-red-500' : 'text-slate-400'}`}>
+                        {isLow ? '⚠' : ''} {p.stock_quantity} {p.unit}
+                      </span>
+                    </div>
+                  </div>
+                </button>
+                <div className="flex flex-col gap-2 flex-shrink-0">
+                  <button onClick={() => openEdit(p)} className="p-2 bg-blue-50 text-blue-500 rounded-xl"><Edit className="w-4 h-4" /></button>
+                  <button onClick={() => handleDelete(p.id)} className="p-2 bg-red-50 text-red-500 rounded-xl"><Trash2 className="w-4 h-4" /></button>
+                </div>
+              </div>
+            )
+          })}
+          {filtered.length === 0 && (
+            <div className="text-center py-12 text-slate-400"><Package className="w-10 h-10 mx-auto mb-2 opacity-40" /><p>No products found</p></div>
+          )}
+        </div>
+
+        {/* Desktop table */}
+        <div className="hidden md:block bg-white rounded-2xl border border-slate-200 overflow-hidden">
           <div className="overflow-x-auto">
             <table className="w-full text-sm">
               <thead className="bg-slate-50 border-b border-slate-200">
@@ -220,8 +250,7 @@ export default function InventoryPage() {
                           <div className="w-10 h-10 bg-slate-100 rounded-lg overflow-hidden flex-shrink-0 flex items-center justify-center">
                             {p.image_url
                               ? <Image src={p.image_url} alt={p.name} width={40} height={40} className="object-cover w-full h-full" />
-                              : <Package className="w-5 h-5 text-slate-400" />
-                            }
+                              : <Package className="w-5 h-5 text-slate-400" />}
                           </div>
                           <div>
                             <p className="font-medium text-slate-800 hover:text-green-600">{p.name}</p>
@@ -233,17 +262,13 @@ export default function InventoryPage() {
                       <td className="px-4 py-3 text-right text-slate-600">{p.cost_price.toLocaleString('en')} FCFA</td>
                       <td className="px-4 py-3 text-right font-semibold text-green-600">{p.selling_price.toLocaleString('en')} FCFA</td>
                       <td className="px-4 py-3 text-right">
-                        <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-700'}`}>
-                          {p.stock_quantity} {p.unit}
-                        </span>
+                        <span className={`font-semibold ${isLow ? 'text-red-600' : 'text-slate-700'}`}>{p.stock_quantity} {p.unit}</span>
                         {isLow && <span className="ml-1 text-xs text-red-400">⚠</span>}
                       </td>
                       <td className="px-4 py-3">
                         <div className="flex items-center justify-center gap-2">
-                          <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg transition-colors">
-                            <Edit className="w-4 h-4" />
-                          </button>
-                          <button onClick={() => handleDelete(p.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg transition-colors">
+                          <button onClick={() => openEdit(p)} className="p-1.5 hover:bg-blue-50 text-blue-500 rounded-lg"><Edit className="w-4 h-4" /></button>
+                          <button onClick={() => handleDelete(p.id)} className="p-1.5 hover:bg-red-50 text-red-500 rounded-lg">
                             <Trash2 className="w-4 h-4" />
                           </button>
                         </div>
@@ -266,6 +291,7 @@ export default function InventoryPage() {
       </div>
 
       {/* Product Form Modal */}
+
       {showForm && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/50">
           <div className="bg-white rounded-2xl shadow-2xl w-full max-w-2xl max-h-[90vh] overflow-y-auto">

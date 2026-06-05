@@ -111,7 +111,7 @@ export default function DashboardPage() {
         )}
 
         {/* Stat Cards */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
           {statCards.map(card => (
             <div key={card.label} className={`rounded-2xl p-5 ${card.color}`}>
               <div className={`inline-flex p-2 rounded-xl mb-3 ${card.iconBg}`}>
@@ -139,7 +139,7 @@ export default function DashboardPage() {
             </div>
           </div>
 
-          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-4">
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 xl:grid-cols-6 gap-3">
             {filtered.map(product => {
               const isLow = product.stock_quantity <= product.min_stock_level
               return (
