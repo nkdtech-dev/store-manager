@@ -1,5 +1,5 @@
 'use client'
-import { useEffect, useState, useRef } from 'react'
+import { useEffect, useState, useRef, Suspense } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import Receipt from '@/components/Receipt'
@@ -11,7 +11,7 @@ import { useSearchParams } from 'next/navigation'
 
 interface CartItem { product: Product; quantity: number; discount: number }
 
-export default function SalesPage() {
+function SalesPageInner() {
   const [products, setProducts] = useState<Product[]>([])
   const [cart, setCart] = useState<CartItem[]>([])
   const [search, setSearch] = useState('')
@@ -364,5 +364,13 @@ export default function SalesPage() {
 
       {receipt && <Receipt {...receipt} />}
     </AppShell>
+  )
+}
+
+export default function SalesPage() {
+  return (
+    <Suspense fallback={<div className="flex items-center justify-center h-screen text-slate-400">Loading…</div>}>
+      <SalesPageInner />
+    </Suspense>
   )
 }
