@@ -28,6 +28,7 @@ export default function Sidebar() {
   const pathname = usePathname()
   const router = useRouter()
   const [profile, setProfile] = useState<Profile | null>(null)
+  const [lowStockCount, setLowStockCount] = useState(0)
 
   useEffect(() => {
     async function loadProfile() {
@@ -40,6 +41,14 @@ export default function Sidebar() {
         .eq('id', user.id)
         .single()
       if (data) setProfile(data)
+
+      // Count low stock items
+      const { data: prods } = await supabase
+        .from('products')
+        .select('stock_quantity, min_stock_level')
+      if (prods) {
+        setLowStockCount(prods.filter(p => p.stock_quantity <= p.min_stock_level).length)
+      }
     }
     loadProfile()
   }, [])
@@ -97,13 +106,19 @@ export default function Sidebar() {
         {/* All users see cashier nav */}
         {cashierNav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
+          const isStock = href === '/stock'
           return (
             <Link key={href} href={href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
                 active ? 'bg-green-600 text-white' : 'text-green-200 hover:bg-green-700 hover:text-white'
               }`}>
               <Icon className="w-5 h-5" />
-              {label}
+              <span className="flex-1">{label}</span>
+              {isStock && lowStockCount > 0 && (
+                <span className="bg-red-500 text-white text-xs font-bold px-1.5 py-0.5 rounded-full min-w-[20px] text-center">
+                  {lowStockCount}
+                </span>
+              )}
             </Link>
           )
         })}

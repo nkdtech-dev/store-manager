@@ -3,7 +3,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
-import { Package, ShoppingCart, TrendingUp, AlertTriangle, Search } from 'lucide-react'
+import { Package, ShoppingCart, TrendingUp, AlertTriangle, Search, Bell } from 'lucide-react'
+import Link from 'next/link'
 import type { Product, DashboardStats } from '@/types'
 import Image from 'next/image'
 
@@ -88,6 +89,24 @@ export default function DashboardPage() {
           <h1 className="text-2xl font-bold text-slate-800">Dashboard</h1>
           <p className="text-slate-500 text-sm">Overview of your store</p>
         </div>
+
+        {/* Low Stock Banner */}
+        {stats && stats.lowStockCount > 0 && (
+          <Link href="/stock" className="block">
+            <div className="bg-red-50 border border-red-200 rounded-2xl px-5 py-4 flex items-center gap-4 hover:bg-red-100 transition-colors cursor-pointer">
+              <div className="bg-red-100 p-2 rounded-xl flex-shrink-0">
+                <Bell className="w-5 h-5 text-red-600" />
+              </div>
+              <div className="flex-1">
+                <p className="font-semibold text-red-700">
+                  ⚠️ {stats.lowStockCount} item{stats.lowStockCount !== 1 ? 's are' : ' is'} running low on stock
+                </p>
+                <p className="text-sm text-red-500 mt-0.5">Tap here to view and restock them now</p>
+              </div>
+              <span className="text-red-500 text-sm font-medium">View →</span>
+            </div>
+          </Link>
+        )}
 
         {/* Stat Cards */}
         <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">

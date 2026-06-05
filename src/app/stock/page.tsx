@@ -11,6 +11,7 @@ export default function StockPage() {
   const [products, setProducts] = useState<Product[]>([])
   const [tab, setTab] = useState<'low' | 'all' | 'log'>('low')
   const [movements, setMovements] = useState<any[]>([])
+  const [recentlyRestocked, setRecentlyRestocked] = useState<Set<string>>(new Set())
   const [showReceive, setShowReceive] = useState<Product | null>(null)
   const [receiveQty, setReceiveQty] = useState('')
   const [receiveNote, setReceiveNote] = useState('')
@@ -31,7 +32,17 @@ export default function StockPage() {
       .select('*, product:products(name,code), created_by_profile:profiles(full_name)')
       .order('created_at', { ascending: false })
       .limit(50)
-    if (moves) setMovements(moves)
+    if (moves) {
+      setMovements(moves)
+      // Mark products restocked in last 24 hours
+      const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString()
+      const restockedIds = new Set(
+        moves
+          .filter(m => m.type === 'received' && m.created_at > oneDayAgo)
+          .map(m => m.product_id as string)
+      )
+      setRecentlyRestocked(restockedIds)
+    }
   }
 
   async function receiveStock() {
@@ -94,6 +105,21 @@ export default function StockPage() {
           )}
         </div>
 
+        {/* Recently Restocked Banner */}
+        {recentlyRestocked.size > 0 && (
+          <div className="bg-green-50 border border-green-200 rounded-2xl px-5 py-4 flex items-center gap-4">
+            <div className="bg-green-100 p-2 rounded-xl">
+              <ArrowUp className="w-5 h-5 text-green-600" />
+            </div>
+            <div>
+              <p className="font-semibold text-green-700">
+                ✅ {recentlyRestocked.size} item{recentlyRestocked.size !== 1 ? 's' : ''} restocked in the last 24 hours
+              </p>
+              <p className="text-sm text-green-500 mt-0.5">Check the Movement Log tab to see full details</p>
+            </div>
+          </div>
+        )}
+
         {/* Tabs */}
         <div className="flex gap-2">
           {[
@@ -150,12 +176,19 @@ export default function StockPage() {
                       </td>
                       <td className="px-4 py-3 text-center text-slate-500">{p.min_stock_level} {p.unit}</td>
                       <td className="px-4 py-3 text-center">
-                        {isOut
-                          ? <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Out of Stock</span>
-                          : isLow
-                          ? <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">Low Stock</span>
-                          : <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">OK</span>
-                        }
+                        <div className="flex flex-col items-center gap-1">
+                          {isOut
+                            ? <span className="text-xs bg-red-100 text-red-700 px-2 py-1 rounded-full font-medium">Out of Stock</span>
+                            : isLow
+                            ? <span className="text-xs bg-orange-100 text-orange-700 px-2 py-1 rounded-full font-medium">Low Stock</span>
+                            : <span className="text-xs bg-green-100 text-green-700 px-2 py-1 rounded-full font-medium">OK</span>
+                          }
+                          {recentlyRestocked.has(p.id) && (
+                            <span className="text-xs bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full font-medium">
+                              🔄 Restocked
+                            </span>
+                          )}
+                        </div>
                       </td>
                       <td className="px-4 py-3 text-center">
                         <button onClick={() => setShowReceive(p)}
