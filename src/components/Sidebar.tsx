@@ -67,12 +67,21 @@ export default function Sidebar() {
       {/* Logged in user info */}
       {profile && (
         <div className="px-4 py-3 border-b border-green-700 bg-green-900/30">
-          <p className="text-white text-sm font-semibold truncate">{profile.full_name}</p>
-          <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
-            profile.role === 'admin' ? 'bg-blue-500/30 text-blue-200' : 'bg-green-500/30 text-green-200'
-          }`}>
-            {profile.role}
-          </span>
+          <div className="flex items-center gap-3 mb-1">
+            <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white font-bold text-sm flex-shrink-0 ${
+              profile.role === 'admin' ? 'bg-blue-500' : 'bg-green-500'
+            }`}>
+              {profile.full_name.split(' ').map((n: string) => n[0]).join('').toUpperCase().slice(0, 2)}
+            </div>
+            <div className="min-w-0">
+              <p className="text-white text-sm font-bold truncate">{profile.full_name}</p>
+              <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${
+                profile.role === 'admin' ? 'bg-blue-500/40 text-blue-200' : 'bg-green-500/40 text-green-200'
+              }`}>
+                {profile.role}
+              </span>
+            </div>
+          </div>
           {profile.last_login_at && (
             <div className="flex items-center gap-1 mt-1.5">
               <Clock className="w-3 h-3 text-green-400" />
