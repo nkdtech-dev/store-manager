@@ -20,7 +20,12 @@ export default function StaffPage() {
   async function loadStaff() {
     setLoading(true)
     const res = await fetch('/api/staff')
-    if (res.ok) setStaff(await res.json())
+    const data = await res.json()
+    if (res.ok) {
+      setStaff(data)
+    } else {
+      setError(data.error ?? 'Failed to load staff')
+    }
     setLoading(false)
   }
 
@@ -98,6 +103,11 @@ export default function StaffPage() {
           </button>
         </div>
 
+        {error && !showForm && (
+          <div className="bg-red-50 border border-red-200 text-red-700 text-sm rounded-xl px-4 py-3">
+            {error}
+          </div>
+        )}
         {loading ? (
           <div className="text-center py-16 text-slate-400">Loading staff…</div>
         ) : (

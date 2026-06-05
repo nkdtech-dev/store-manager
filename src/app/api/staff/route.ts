@@ -26,19 +26,18 @@ async function requireAdmin() {
 
 const toEmail = (username: string) => `${username.trim().toLowerCase()}@ndastore.app`
 
-// GET — list all staff
+// GET — list all staff (uses admin client to bypass RLS)
 export async function GET() {
   const admin = await requireAdmin()
   if (!admin) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
-  const supabase = await createServerClient()
-  const { data, error } = await supabase
+  const { data, error } = await adminClient()
     .from('profiles')
     .select('*')
     .order('full_name')
 
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json(data)
+  return NextResponse.json(data ?? [])
 }
 
 // POST — create new staff member
