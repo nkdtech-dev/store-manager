@@ -2,10 +2,13 @@
 import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
-import { Store, Eye, EyeOff } from 'lucide-react'
+import { Store, Eye, EyeOff, User } from 'lucide-react'
+
+// Usernames are converted to internal emails: john → john@ndastore.app
+const toEmail = (username: string) => `${username.trim().toLowerCase()}@ndastore.app`
 
 export default function LoginPage() {
-  const [email, setEmail] = useState('')
+  const [username, setUsername] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
   const [error, setError] = useState('')
@@ -17,9 +20,12 @@ export default function LoginPage() {
     setLoading(true)
     setError('')
     const supabase = createClient()
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
+    const { error } = await supabase.auth.signInWithPassword({
+      email: toEmail(username),
+      password,
+    })
     if (error) {
-      setError(error.message)
+      setError('Invalid username or password')
       setLoading(false)
     } else {
       router.push('/dashboard')
@@ -33,21 +39,25 @@ export default function LoginPage() {
           <div className="inline-flex items-center justify-center w-16 h-16 bg-green-100 rounded-2xl mb-4">
             <Store className="w-8 h-8 text-green-700" />
           </div>
-          <h1 className="text-2xl font-bold text-slate-800">StoreManager</h1>
+          <h1 className="text-2xl font-bold text-slate-800">NDA Store</h1>
           <p className="text-slate-500 text-sm mt-1">Sign in to manage your store</p>
         </div>
 
         <form onSubmit={handleLogin} className="space-y-4">
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Email address</label>
-            <input
-              type="email"
-              value={email}
-              onChange={e => setEmail(e.target.value)}
-              required
-              placeholder="you@example.com"
-              className="w-full border border-slate-300 rounded-xl px-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
-            />
+            <label className="block text-sm font-medium text-slate-700 mb-1">Username</label>
+            <div className="relative">
+              <User className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 w-4 h-4" />
+              <input
+                type="text"
+                value={username}
+                onChange={e => setUsername(e.target.value)}
+                required
+                placeholder="Enter your username"
+                autoComplete="username"
+                className="w-full border border-slate-300 rounded-xl pl-10 pr-4 py-3 text-sm focus:outline-none focus:ring-2 focus:ring-green-500 focus:border-transparent"
+              />
+            </div>
           </div>
 
           <div>
@@ -87,7 +97,7 @@ export default function LoginPage() {
         </form>
 
         <p className="text-center text-xs text-slate-400 mt-6">
-          Contact your administrator for account access.
+          Contact your administrator to get access.
         </p>
       </div>
     </div>
