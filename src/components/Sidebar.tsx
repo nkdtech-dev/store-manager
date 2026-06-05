@@ -1,20 +1,26 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Receipt, Wallet } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Wallet, Settings } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
 import type { Profile } from '@/types'
 
-const nav = [
+// Nav items visible to all users
+const cashierNav = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/inventory', label: 'Inventory', icon: Package },
   { href: '/sales', label: 'Sales', icon: ShoppingCart },
   { href: '/stock', label: 'Stock', icon: AlertTriangle },
+]
+
+// Extra nav items only for admins
+const adminNav = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/expenses', label: 'Expenses', icon: Wallet },
   { href: '/staff', label: 'Staff', icon: Users },
+  { href: '/settings', label: 'Settings', icon: Settings },
 ]
 
 export default function Sidebar() {
@@ -77,24 +83,41 @@ export default function Sidebar() {
         </div>
       )}
 
-      <nav className="flex-1 p-4 space-y-1">
-        {nav.map(({ href, label, icon: Icon }) => {
+      <nav className="flex-1 p-4 space-y-1 overflow-y-auto">
+        {/* All users see cashier nav */}
+        {cashierNav.map(({ href, label, icon: Icon }) => {
           const active = pathname.startsWith(href)
           return (
-            <Link
-              key={href}
-              href={href}
+            <Link key={href} href={href}
               className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
-                active
-                  ? 'bg-green-600 text-white'
-                  : 'text-green-200 hover:bg-green-700 hover:text-white'
-              }`}
-            >
+                active ? 'bg-green-600 text-white' : 'text-green-200 hover:bg-green-700 hover:text-white'
+              }`}>
               <Icon className="w-5 h-5" />
               {label}
             </Link>
           )
         })}
+
+        {/* Admin-only section */}
+        {profile?.role === 'admin' && (
+          <>
+            <div className="pt-3 pb-1">
+              <p className="text-xs text-green-500 font-semibold uppercase tracking-wider px-4">Admin</p>
+            </div>
+            {adminNav.map(({ href, label, icon: Icon }) => {
+              const active = pathname.startsWith(href)
+              return (
+                <Link key={href} href={href}
+                  className={`flex items-center gap-3 px-4 py-3 rounded-lg transition-colors text-sm font-medium ${
+                    active ? 'bg-green-600 text-white' : 'text-green-200 hover:bg-green-700 hover:text-white'
+                  }`}>
+                  <Icon className="w-5 h-5" />
+                  {label}
+                </Link>
+              )
+            })}
+          </>
+        )}
       </nav>
 
       <div className="p-4 border-t border-green-700">

@@ -15,7 +15,7 @@ export default function SalesPage() {
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [showResults, setShowResults] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'card' | 'transfer'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'transfer'>('cash')
   const [cartDiscount, setCartDiscount] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -131,7 +131,11 @@ export default function SalesPage() {
         })
       }
 
-      // Show receipt
+      // Show receipt only if enabled in settings
+      const settings = JSON.parse(localStorage.getItem('store_settings') || '{}')
+      const receiptEnabled = settings.receiptEnabled !== false // default true
+      if (!receiptEnabled) { setCart([]); setNotes(''); setCartDiscount(''); loadData(); return }
+
       setReceipt({
         receiptNumber,
         items: cart.map(i => ({
@@ -289,7 +293,7 @@ export default function SalesPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['cash', 'card', 'transfer'] as const).map(m => (
+                  {(['cash', 'momo', 'transfer'] as const).map(m => (
                     <button key={m} onClick={() => setPaymentMethod(m)}
                       className={`py-2 rounded-xl text-sm font-medium border transition-colors capitalize ${
                         paymentMethod === m ? 'bg-green-600 text-white border-green-600' : 'border-slate-200 text-slate-600 hover:border-green-400'

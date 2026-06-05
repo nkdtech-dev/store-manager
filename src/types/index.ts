@@ -49,7 +49,7 @@ export interface Sale {
   cashier_id: string
   cashier?: Profile
   total_amount: number
-  payment_method: 'cash' | 'card' | 'transfer'
+  payment_method: 'cash' | 'momo' | 'transfer'
   notes: string | null
   created_at: string
   items?: SaleItem[]
