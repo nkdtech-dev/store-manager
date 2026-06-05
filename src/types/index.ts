@@ -63,3 +63,29 @@ export interface DashboardStats {
   totalRevenue: number
   totalStockValue: number
 }
+
+export interface StockMovement {
+  id: string
+  product_id: string
+  product?: Product
+  type: 'received' | 'sold' | 'adjustment' | 'writeoff'
+  quantity: number
+  note: string | null
+  created_by: string | null
+  created_at: string
+}
+
+export interface Expense {
+  id: string
+  description: string
+  amount: number
+  category: string
+  recorded_by: string | null
+  created_at: string
+}
+
+export interface CartItem {
+  product: Product
+  quantity: number
+  discount: number
+}
