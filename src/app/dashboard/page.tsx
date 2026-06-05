@@ -8,6 +8,8 @@ import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { Product, DashboardStats } from '@/types'
 import Image from 'next/image'
+import { localDb } from '@/lib/localDb'
+import { pullFromSupabase } from '@/lib/sync'
 
 export default function DashboardPage() {
   const [stats, setStats] = useState<DashboardStats | null>(null)
@@ -29,19 +31,32 @@ export default function DashboardPage() {
     setFiltered(products.filter(p =>
       p.code.toLowerCase().includes(q) ||
       p.name.toLowerCase().includes(q) ||
-      p.category?.name?.toLowerCase().includes(q)
+      (p as any).category_name?.toLowerCase().includes(q)
     ))
   }, [search, products])
 
   async function loadDashboard() {
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, category:categories(id,name,description,created_at)')
-      .order('name')
+    // Load from local DB first (works offline, instant)
+    const localProds = await localDb.products.orderBy('name').toArray()
+    if (localProds.length > 0) {
+      const mapped = localProds.map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[]
+      setProducts(mapped)
+      setFiltered(mapped)
+    }
 
-    if (prods) {
-      setProducts(prods)
-      setFiltered(prods)
+    // Sync from Supabase if online
+    if (navigator.onLine) {
+      await pullFromSupabase()
+      const refreshed = await localDb.products.orderBy('name').toArray()
+      const mapped = refreshed.map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[]
+      setProducts(mapped)
+      setFiltered(mapped)
     }
 
     // Stats

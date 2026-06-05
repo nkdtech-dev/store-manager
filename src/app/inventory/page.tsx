@@ -5,6 +5,8 @@ import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
 import { Plus, Search, Edit, Trash2, Package, Upload, X, Tag } from 'lucide-react'
 import { logActivity } from '@/lib/activityLog'
+import { localDb } from '@/lib/localDb'
+import { pullFromSupabase } from '@/lib/sync'
 import type { Product, Category } from '@/types'
 import Image from 'next/image'
 
@@ -36,13 +38,29 @@ export default function InventoryPage() {
   useEffect(() => { load() }, [])
 
   async function load() {
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, category:categories(id,name,description,created_at)')
-      .order('name')
-    const { data: cats } = await supabase.from('categories').select('*').order('name')
-    if (prods) setProducts(prods)
-    if (cats) setCategories(cats)
+    // Load from local DB first (offline-safe)
+    const localProds = await localDb.products.orderBy('name').toArray()
+    const localCats = await localDb.categories.orderBy('name').toArray()
+
+    if (localProds.length > 0) {
+      setProducts(localProds.map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[])
+    }
+    if (localCats.length > 0) setCategories(localCats as any)
+
+    // Sync from Supabase if online
+    if (navigator.onLine) {
+      await pullFromSupabase()
+      const refreshed = await localDb.products.orderBy('name').toArray()
+      const refreshedCats = await localDb.categories.orderBy('name').toArray()
+      setProducts(refreshed.map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[])
+      setCategories(refreshedCats as any)
+    }
   }
 
   async function addCategory() {

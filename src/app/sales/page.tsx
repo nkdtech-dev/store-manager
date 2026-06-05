@@ -50,12 +50,25 @@ function SalesPageInner() {
   }, [search, products])
 
   async function loadData() {
-    const { data: prods } = await supabase
-      .from('products')
-      .select('*, category:categories(id,name,description,created_at)')
-      .gt('stock_quantity', 0)
-      .order('name')
-    if (prods) setProducts(prods)
+    // Load products from local DB first (works offline)
+    const localProds = await localDb.products.orderBy('name').toArray()
+    const mapped = localProds
+      .filter(p => p.stock_quantity > 0)
+      .map(p => ({
+        ...p,
+        category: p.category_name ? { id: p.category_id ?? '', name: p.category_name, description: null, created_at: '' } : undefined
+      })) as unknown as Product[]
+    if (mapped.length > 0) setProducts(mapped)
+
+    // Also try Supabase if online
+    if (navigator.onLine) {
+      const { data: prods } = await supabase
+        .from('products')
+        .select('*, category:categories(id,name,description,created_at)')
+        .gt('stock_quantity', 0)
+        .order('name')
+      if (prods) setProducts(prods)
+    }
 
     const { data: { user } } = await supabase.auth.getUser()
     if (user) {

@@ -1,17 +1,7 @@
-const CACHE_NAME = 'nda-store-v1'
-const STATIC_ASSETS = [
-  '/',
-  '/dashboard',
-  '/inventory',
-  '/sales',
-  '/stock',
-  '/settings',
-]
+const CACHE_NAME = 'nda-store-v2'
 
+// On install — take control immediately
 self.addEventListener('install', (event) => {
-  event.waitUntil(
-    caches.open(CACHE_NAME).then(cache => cache.addAll(STATIC_ASSETS))
-  )
   self.skipWaiting()
 })
 
@@ -19,33 +9,45 @@ self.addEventListener('activate', (event) => {
   event.waitUntil(
     caches.keys().then(keys =>
       Promise.all(keys.filter(k => k !== CACHE_NAME).map(k => caches.delete(k)))
-    )
+    ).then(() => self.clients.claim())
   )
-  self.clients.claim()
 })
 
 self.addEventListener('fetch', (event) => {
   const url = new URL(event.request.url)
 
-  // Skip non-GET, API calls, and Supabase calls
-  if (event.request.method !== 'GET') return
+  // Never cache: Supabase API calls, auth, POST requests
   if (url.hostname.includes('supabase.co')) return
+  if (event.request.method !== 'GET') return
   if (url.pathname.startsWith('/api/')) return
 
   event.respondWith(
-    fetch(event.request)
-      .then(response => {
-        // Cache successful responses
-        if (response.status === 200) {
-          const clone = response.clone()
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, clone))
+    caches.open(CACHE_NAME).then(async cache => {
+      // Try network first
+      try {
+        const networkResponse = await fetch(event.request)
+        // Cache everything that succeeds
+        if (networkResponse.ok) {
+          cache.put(event.request, networkResponse.clone())
         }
-        return response
-      })
-      .catch(() => {
-        // Offline: serve from cache
-        return caches.match(event.request)
-          .then(cached => cached || caches.match('/dashboard'))
-      })
+        return networkResponse
+      } catch {
+        // Network failed — serve from cache
+        const cached = await cache.match(event.request)
+        if (cached) return cached
+
+        // For navigation requests (page refreshes), return the cached dashboard
+        if (event.request.mode === 'navigate') {
+          const dashboard = await cache.match('/dashboard')
+          if (dashboard) return dashboard
+        }
+
+        // Nothing in cache either
+        return new Response('Offline — please wait for connection', {
+          status: 503,
+          headers: { 'Content-Type': 'text/plain' }
+        })
+      }
+    })
   )
 })
