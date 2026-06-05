@@ -1,9 +1,11 @@
 'use client'
 import Sidebar from './Sidebar'
 import BottomNav from './BottomNav'
+import OfflineIndicator from './OfflineIndicator'
+import SyncProvider from './SyncProvider'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { Menu, X } from 'lucide-react'
+import { Menu } from 'lucide-react'
 
 export default function AppShell({ children }: { children: React.ReactNode }) {
   const [sidebarOpen, setSidebarOpen] = useState(false)
@@ -19,6 +21,7 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
   }, [])
 
   return (
+    <SyncProvider>
     <div className="flex h-screen overflow-hidden bg-slate-50">
       {/* Desktop sidebar */}
       <div className="hidden md:flex">
@@ -55,6 +58,10 @@ export default function AppShell({ children }: { children: React.ReactNode }) {
 
       {/* Mobile bottom nav */}
       <BottomNav lowStockCount={lowStockCount} />
+
+      {/* Offline/Sync indicator */}
+      <OfflineIndicator />
     </div>
+    </SyncProvider>
   )
 }

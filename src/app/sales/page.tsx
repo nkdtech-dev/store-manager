@@ -5,6 +5,8 @@ import AppShell from '@/components/AppShell'
 import Receipt from '@/components/Receipt'
 import { Search, Plus, Minus, Trash2, Tag } from 'lucide-react'
 import { logActivity } from '@/lib/activityLog'
+import { queueSync } from '@/lib/sync'
+import { localDb } from '@/lib/localDb'
 import type { Product, Sale } from '@/types'
 import Link from 'next/link'
 import { useSearchParams } from 'next/navigation'
@@ -104,41 +106,62 @@ function SalesPageInner() {
       const { data: { user } } = await supabase.auth.getUser()
       const receiptNumber = `RCP-${Date.now()}`
 
-      const { data: sale, error } = await supabase
-        .from('sales')
-        .insert({
-          receipt_number: receiptNumber,
-          cashier_id: user?.id,
-          total_amount: total,
-          discount: cartDiscountNum,
-          payment_method: paymentMethod,
-          notes: notes || null
-        })
-        .select().single()
-
-      if (error || !sale) throw error
+      const saleId = crypto.randomUUID()
+      const saleData = {
+        id: saleId,
+        receipt_number: receiptNumber,
+        cashier_id: user?.id,
+        total_amount: total,
+        discount: cartDiscountNum,
+        payment_method: paymentMethod,
+        notes: notes || null,
+        created_at: new Date().toISOString(),
+      }
 
       const saleItems = cart.map(i => ({
-        sale_id: sale.id,
+        id: crypto.randomUUID(),
+        sale_id: saleId,
         product_id: i.product.id,
         quantity: i.quantity,
         unit_price: i.product.selling_price,
         discount: i.discount,
-        subtotal: i.product.selling_price * i.quantity - i.discount
+        subtotal: i.product.selling_price * i.quantity - i.discount,
+        created_at: new Date().toISOString(),
       }))
-      await supabase.from('sale_items').insert(saleItems)
 
-      // Log stock movements & decrement stock
+      if (navigator.onLine) {
+        // Online: write directly to Supabase
+        const { error } = await supabase.from('sales').insert(saleData)
+        if (error) throw error
+        await supabase.from('sale_items').insert(saleItems)
+        for (const item of cart) {
+          await supabase.from('products')
+            .update({ stock_quantity: item.product.stock_quantity - item.quantity })
+            .eq('id', item.product.id)
+          await supabase.from('stock_movements').insert({
+            product_id: item.product.id, type: 'sold',
+            quantity: -item.quantity, note: `Sale ${receiptNumber}`, created_by: user?.id
+          })
+        }
+      } else {
+        // Offline: queue for later sync
+        await queueSync('insert', 'sales', saleData)
+        for (const item of saleItems) await queueSync('insert', 'sale_items', item)
+        for (const item of cart) {
+          const newQty = item.product.stock_quantity - item.quantity
+          await queueSync('update', 'products', { id: item.product.id, stock_quantity: newQty })
+          await queueSync('insert', 'stock_movements', {
+            id: crypto.randomUUID(), product_id: item.product.id, type: 'sold',
+            quantity: -item.quantity, note: `Sale ${receiptNumber}`, created_by: user?.id,
+            created_at: new Date().toISOString(),
+          })
+        }
+      }
+
+      // Always update local DB stock immediately
       for (const item of cart) {
-        await supabase.from('products')
-          .update({ stock_quantity: item.product.stock_quantity - item.quantity })
-          .eq('id', item.product.id)
-        await supabase.from('stock_movements').insert({
-          product_id: item.product.id,
-          type: 'sold',
-          quantity: -item.quantity,
-          note: `Sale ${receiptNumber}`,
-          created_by: user?.id
+        await localDb.products.update(item.product.id, {
+          stock_quantity: item.product.stock_quantity - item.quantity
         })
       }
 
