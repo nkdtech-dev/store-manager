@@ -1,7 +1,7 @@
 'use client'
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
-import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Wallet, Settings } from 'lucide-react'
+import { LayoutDashboard, Package, ShoppingCart, BarChart3, LogOut, Store, Users, Clock, AlertTriangle, Wallet, Settings, Activity } from 'lucide-react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { useEffect, useState } from 'react'
@@ -19,6 +19,7 @@ const cashierNav = [
 const adminNav = [
   { href: '/analytics', label: 'Analytics', icon: BarChart3 },
   { href: '/expenses', label: 'Expenses', icon: Wallet },
+  { href: '/activity', label: 'Activity Log', icon: Activity },
   { href: '/staff', label: 'Staff', icon: Users },
   { href: '/settings', label: 'Settings', icon: Settings },
 ]

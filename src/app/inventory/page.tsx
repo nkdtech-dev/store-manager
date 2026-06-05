@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import ProductPopup from '@/components/ProductPopup'
 import { Plus, Search, Edit, Trash2, Package, Upload, X, Tag } from 'lucide-react'
+import { logActivity } from '@/lib/activityLog'
 import type { Product, Category } from '@/types'
 import Image from 'next/image'
 
@@ -127,8 +128,10 @@ export default function InventoryPage() {
 
       if (editing) {
         await supabase.from('products').update(payload).eq('id', editing.id)
+        await logActivity('product_edited', `Edited product: ${payload.name} (${payload.code})`)
       } else {
         await supabase.from('products').insert(payload)
+        await logActivity('product_added', `Added new product: ${payload.name} (${payload.code})`)
       }
 
       setShowForm(false)
@@ -140,7 +143,9 @@ export default function InventoryPage() {
 
   async function handleDelete(id: string) {
     if (!confirm('Delete this product?')) return
+    const product = products.find(p => p.id === id)
     await supabase.from('products').delete().eq('id', id)
+    await logActivity('product_deleted', `Deleted product: ${product?.name} (${product?.code})`)
     load()
   }
 

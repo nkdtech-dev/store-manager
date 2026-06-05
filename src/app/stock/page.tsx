@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import { AlertTriangle, Plus, X, Package, ArrowUp, ArrowDown, History } from 'lucide-react'
+import { logActivity } from '@/lib/activityLog'
 import type { Product } from '@/types'
 import Image from 'next/image'
 
@@ -50,6 +51,7 @@ export default function StockPage() {
       .update({ stock_quantity: showReceive.stock_quantity + qty })
       .eq('id', showReceive.id)
 
+    await logActivity('stock_received', `Received ${qty} ${showReceive.unit} of ${showReceive.name} (${showReceive.code})`)
     setShowReceive(null)
     setReceiveQty('')
     setReceiveNote('')

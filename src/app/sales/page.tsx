@@ -4,6 +4,7 @@ import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import Receipt from '@/components/Receipt'
 import { Search, Plus, Minus, Trash2, Tag } from 'lucide-react'
+import { logActivity } from '@/lib/activityLog'
 import type { Product, Sale } from '@/types'
 import Link from 'next/link'
 
@@ -15,7 +16,7 @@ export default function SalesPage() {
   const [search, setSearch] = useState('')
   const [searchResults, setSearchResults] = useState<Product[]>([])
   const [showResults, setShowResults] = useState(false)
-  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo' | 'transfer'>('cash')
+  const [paymentMethod, setPaymentMethod] = useState<'cash' | 'momo'>('cash')
   const [cartDiscount, setCartDiscount] = useState('')
   const [notes, setNotes] = useState('')
   const [submitting, setSubmitting] = useState(false)
@@ -130,6 +131,8 @@ export default function SalesPage() {
           created_by: user?.id
         })
       }
+
+      await logActivity('sale_recorded', `Sale ${receiptNumber} — ${cart.length} item(s) — ${total.toLocaleString('en')} FCFA (${paymentMethod})`)
 
       // Show receipt only if enabled in settings
       const settings = JSON.parse(localStorage.getItem('store_settings') || '{}')
@@ -293,7 +296,7 @@ export default function SalesPage() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-1">Payment Method</label>
                 <div className="grid grid-cols-3 gap-2">
-                  {(['cash', 'momo', 'transfer'] as const).map(m => (
+                  {(['cash', 'momo'] as const).map(m => (
                     <button key={m} onClick={() => setPaymentMethod(m)}
                       className={`py-2 rounded-xl text-sm font-medium border transition-colors capitalize ${
                         paymentMethod === m ? 'bg-green-600 text-white border-green-600' : 'border-slate-200 text-slate-600 hover:border-green-400'

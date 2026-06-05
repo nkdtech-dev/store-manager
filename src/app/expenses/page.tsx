@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import AppShell from '@/components/AppShell'
 import { Plus, Trash2, X, DollarSign, Download } from 'lucide-react'
+import { logActivity } from '@/lib/activityLog'
 import type { Expense } from '@/types'
 
 const EXPENSE_CATEGORIES = ['Rent', 'Utilities', 'Salaries', 'Supplies', 'Transport', 'Maintenance', 'Marketing', 'General']
@@ -36,6 +37,7 @@ export default function ExpensesPage() {
       category: form.category,
       recorded_by: user?.id
     })
+    await logActivity('expense_added', `Added expense: ${form.description} — ${form.amount} FCFA (${form.category})`)
     setForm({ description: '', amount: '', category: 'General' })
     setShowForm(false)
     load()

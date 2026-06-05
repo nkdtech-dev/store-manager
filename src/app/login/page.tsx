@@ -28,12 +28,16 @@ export default function LoginPage() {
       setError('Invalid username or password')
       setLoading(false)
     } else {
-      // Record last login time
+      // Record last login time + activity log
       if (data.user) {
-        await supabase
-          .from('profiles')
+        await supabase.from('profiles')
           .update({ last_login_at: new Date().toISOString() })
           .eq('id', data.user.id)
+        await supabase.from('activity_logs').insert({
+          user_id: data.user.id,
+          action: 'login',
+          details: `${username} logged in`,
+        })
       }
       router.push('/dashboard')
     }
